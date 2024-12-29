@@ -16,6 +16,20 @@ NUM_IMAGES = 3
 OUTPUT_FOLDER = "generated_images_async"
 
 torch.cuda.empty_cache()
+pipeline_cache = None
+
+def load_pipeline():
+    """Load and cache the Stable Diffusion pipeline."""
+    global pipeline_cache
+    if pipeline_cache is None:
+        pipeline_cache = StableDiffusionPipeline.from_pretrained(
+            "stabilityai/stable-diffusion-2-1",
+            torch_dtype=torch.float16,
+            use_safetensors=True,
+            low_cpu_mem_usage=True
+        )
+        print("Pipeline loaded and cached.")
+    return pipeline_cache
 
 def generate_images(pipeline, prompt, num_images):
     """Generate a number of images for a prompt."""
@@ -35,16 +49,13 @@ def main():
     parser = argparse.ArgumentParser(description="Generate images with Stable Diffusion.")
     parser.add_argument("prompt", type=str, help="Prompt for generating images")
     args = parser.parse_args()
-
     prompt = args.prompt
 
+    start = time.time()
+    
     # Load the pipeline
-    pipeline = StableDiffusionPipeline.from_pretrained(
-        "stabilityai/stable-diffusion-2-1",
-        torch_dtype=torch.float16,
-        use_safetensors=True,
-        low_cpu_mem_usage=True
-    )
+    pipeline = load_pipeline()
+    print(f"Loading pipeline time taken: {time.time() - start:.2f} seconds.")
 
     # Initialize AsyncDiff
     async_diff = AsyncDiff(pipeline, model_n=2, stride=1, time_shift=False)
@@ -62,4 +73,5 @@ def main():
     dist.destroy_process_group()
 
 if __name__ == "__main__":
+    load_pipeline()
     main()
