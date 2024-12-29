@@ -12,34 +12,30 @@ export default function GenerateImagesButton() {
     setImages([]);
 
     try {
-      const response = await fetch("/api/stablediffusion", {
+      const response = await fetch("http://127.0.0.1:8001/generate-images", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: "New york city painting" }),
+        body: JSON.stringify({ prompt: "Scenic painting" }), // Test prompt
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         setMessage(`Error: ${errorData.error}`);
-      } else {
-        const data = await response.json();
-        setMessage(data.message || "Images generated successfully!");
-
-        // Update this to handle image URLs if the API provides them
-        if (data.output) {
-          const generatedImages = JSON.parse(data.output); // Adjust if `output` contains image paths/URLs
-          setImages(generatedImages);
-        }
+        return;
       }
+  
+      const data = await response.json();
+      setMessage(`Images generated successfully, time taken: ${data.time_taken}`);
+
     } catch (error) {
       console.error("Error generating images:", error);
       setMessage("An error occurred while generating images.");
     } finally {
       setLoading(false);
     }
-  };
+  };  
 
   return (
     <div>
@@ -50,12 +46,6 @@ export default function GenerateImagesButton() {
       >
         {loading ? "Generating..." : "Generate Images"}
       </button>
-      {message && <p>{message}</p>}
-      <div className="image-gallery">
-        {images.map((image, index) => (
-          <img key={index} src={image} alt={`Generated Image ${index + 1}`} />
-        ))}
-      </div>
     </div>
   );
 }
