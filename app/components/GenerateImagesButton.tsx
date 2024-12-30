@@ -17,7 +17,7 @@ export default function GenerateImagesButton() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: "Scenic painting" }), // Test prompt
+        body: JSON.stringify({ prompt: "Cartoon dogs cute" }), // Test prompt
       });
   
       if (!response.ok) {
@@ -46,6 +46,7 @@ export default function GenerateImagesButton() {
       >
         {loading ? "Generating..." : "Generate Images"}
       </button>
+      {message && <p>{message}</p>}
     </div>
   );
 }
