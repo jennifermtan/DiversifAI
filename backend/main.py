@@ -5,12 +5,12 @@ import torch.distributed as dist
 import torch
 import time
 import os
+import argparse
 
 IMG_WIDTH = 768
 IMG_HEIGHT = 768
 NUM_IMAGES = 3
 OUTPUT_FOLDER = "generated_images"
-PROMPT = "A painting of a beach"
 
 pipeline = None
 
@@ -41,16 +41,20 @@ def save_images(images, prompt):
         print(f"Image saved: {filepath}")
 
 def main():
-    pipeline = load_pipeline()
+    parser = argparse.ArgumentParser(description="Generate images using Stable Diffusion.")
+    parser.add_argument("--prompt", type=str, required=True, help="Prompt to generate images for")
+    args = parser.parse_args()
 
+    pipeline = load_pipeline()
+    prompt = args.prompt
     async_diff = AsyncDiff(pipeline, model_n=2, stride=1, time_shift=False)
     async_diff.reset_state(warm_up=1)
 
     start_time = time.time()
-    images = generate_images(pipeline, PROMPT, NUM_IMAGES)
+    images = generate_images(pipeline, prompt, NUM_IMAGES)
     print(f"Rank {dist.get_rank()} Time taken: {time.time() - start_time:.2f} seconds.")
     if dist.get_rank() == 0:
-        save_images(images, PROMPT)
+        save_images(images, prompt)
 
 if __name__ == "__main__":
     main()

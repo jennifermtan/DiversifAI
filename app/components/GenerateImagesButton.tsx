@@ -4,12 +4,11 @@ import { useState } from "react";
 export default function GenerateImagesButton() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const [prompt, setPrompt] = useState("");
 
   const generateImages = async () => {
     setLoading(true);
     setMessage("");
-    setImages([]);
 
     try {
       const response = await fetch("http://127.0.0.1:8001/generate-images", {
@@ -17,7 +16,7 @@ export default function GenerateImagesButton() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: "Cartoon dogs cute" }), // Test prompt
+        body: JSON.stringify({ prompt }),
       });
   
       if (!response.ok) {
@@ -35,10 +34,17 @@ export default function GenerateImagesButton() {
     } finally {
       setLoading(false);
     }
-  };  
+  };
 
   return (
     <div>
+      <input
+        type="text"
+        placeholder="Enter your prompt"
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        className="rounded-md border p-2 w-full mb-4 text-black"
+      />
       <button
         onClick={generateImages}
         className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
