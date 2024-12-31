@@ -25,8 +25,7 @@ def generate_images():
 
         if result.returncode != 0:
             return jsonify({
-                "error": result.stderr.strip(),
-                "command": " ".join(cli_command)
+                "error": result.stderr.strip() if result.stderr else None
             }), 500
         
         return jsonify({
