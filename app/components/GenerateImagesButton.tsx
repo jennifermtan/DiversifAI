@@ -5,35 +5,51 @@ export default function GenerateImagesButton() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [images, setImages] = useState<string[]>([]);
 
-  const generateImages = async () => {
+  const generateImages = () => {
     setLoading(true);
     setMessage("");
+    setImages([]);
 
-    try {
-      const response = await fetch("http://127.0.0.1:8001/generate-images", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt }),
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        setMessage(`Error: ${errorData.error}`);
-        return;
+    const eventSource = new EventSource(`http://127.0.0.1:8001/generate-images?prompt=${encodeURIComponent(prompt)}`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.image_path) {
+          setImages((prevImages) => [
+            ...prevImages,
+            `http://127.0.0.1:8001${data.image_path}`,
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to parse message:", error);
       }
-  
-      const data = await response.json();
-      setMessage(`Images generated successfully, time taken: ${data.time_taken}`);
+    };
 
-    } catch (error) {
-      console.error("Error generating images:", error);
-      setMessage("An error occurred while generating images.");
-    } finally {
+    eventSource.onerror = () => {
+      console.error("Error in EventSource");
+      eventSource.close();
       setLoading(false);
-    }
+      setMessage("An error occurred while generating images.");
+    };
+
+    eventSource.onopen = () => {
+      console.log("Connection established.");
+    };
+
+    eventSource.addEventListener("end", () => {
+      eventSource.close();
+      setLoading(false);
+      setMessage("Image generation completed.");
+    });
+
+    // Cleanup on unmount
+    return () => {
+      eventSource.close();
+    };
   };
 
   return (
@@ -53,6 +69,17 @@ export default function GenerateImagesButton() {
         {loading ? "Generating..." : "Generate Images"}
       </button>
       {message && <p>{message}</p>}
+      <div className="image-gallery grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+        {images.map((src, index) => (
+          <img
+            key={index}
+            src={src}
+            alt={`Generated Image ${index + 1}`}
+            className="rounded-md"
+            style={{ width: "100%", height: "auto", objectFit: "cover" }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
