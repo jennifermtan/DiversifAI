@@ -12,12 +12,13 @@ export default function GenerateImagesButton() {
     setMessage("");
     setImages([]);
 
-    const eventSource = new EventSource(`http://127.0.0.1:8001/generate-images?prompt=${encodeURIComponent(prompt)}`);
+    const eventSource = new EventSource(
+      `http://127.0.0.1:8001/generate-images?prompt=${encodeURIComponent(prompt)}`
+    );
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
         if (data.image_path) {
           setImages((prevImages) => [
             ...prevImages,
@@ -63,7 +64,7 @@ export default function GenerateImagesButton() {
       />
       <button
         onClick={generateImages}
-        className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+        className="rounded-full border border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
         disabled={loading}
       >
         {loading ? "Generating..." : "Generate Images"}
@@ -76,7 +77,11 @@ export default function GenerateImagesButton() {
             src={src}
             alt={`Generated Image ${index + 1}`}
             className="rounded-md"
-            style={{ width: "100%", height: "auto", objectFit: "cover" }}
+            style={{
+              width: "200px",
+              height: "200px",
+              objectFit: "cover",
+            }}
           />
         ))}
       </div>

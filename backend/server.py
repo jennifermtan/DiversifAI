@@ -10,7 +10,7 @@ import shlex
 app = Flask(__name__)
 CORS(app)
 
-OUTPUT_FOLDER = "generated_images"
+OUTPUT_FOLDER = os.path.join(os.getcwd(), "generated_images")
 
 @app.route("/")
 def home():
@@ -42,6 +42,7 @@ def generate_images():
                 new_files = current_files - existing_files
                 for new_file in new_files:
                     if new_file.endswith(".png"):
+                        # Send update to client for every new image
                         yield f"data: {json.dumps({'image_path': f'/generated_images/{new_file}'})}\n\n"
                 existing_files = current_files
                 time.sleep(1)
@@ -49,6 +50,7 @@ def generate_images():
             for line in process.stderr:
                 print(f"Process error: {line.strip()}")
 
+            # Check for new files after the process
             current_files = set(os.listdir(OUTPUT_FOLDER))
             new_files = current_files - existing_files
             for new_file in new_files:
