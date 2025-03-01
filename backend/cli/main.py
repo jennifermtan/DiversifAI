@@ -39,7 +39,6 @@ def initialize_async_diff(pipeline):
     async_diff = AsyncDiff(pipeline, model_n=2, stride=1, time_shift=False)
     async_diff.reset_state(warm_up=1)
     print("AsyncDiff initialized.")
-    return async_diff
 
 
 def load_prompt():
@@ -80,7 +79,7 @@ def main(rank, world_size):
     
     # Load the pipeline and initialize AsyncDiff
     pipeline = load_pipeline()
-    async_diff = initialize_async_diff(pipeline)
+    initialize_async_diff(pipeline)
 
     try:
         while True:
