@@ -11,7 +11,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 OUTPUT_FOLDER = os.path.join(os.getcwd(), "generated_images")
-PROMPT_FILE = os.path.join(os.getcwd(), "backend/prompt.txt")  # Changed to a text file
+PROMPT_FILE = os.path.join(os.getcwd(), "backend/prompt.txt")
 
 @app.route("/")
 def home():
@@ -59,6 +59,13 @@ def generate_images():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/stop-generation", methods=["POST"])
+def stop_generation():
+    """Write 'STOP' to prompt.txt to signal main.py to stop"""
+    with open(PROMPT_FILE, "w") as f:
+        f.write("STOP")
+    return jsonify({"message": "Image generation stopped"}), 200
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8001, debug=True)

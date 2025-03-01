@@ -73,6 +73,12 @@ def main():
     try:
         while True:
             prompt = load_prompt()
+
+            # Break condition
+            if prompt == "STOP":
+                print("Image generation stopped")
+                break
+
             if prompt:
                 print(f"⚡ Rank {dist.get_rank()}: Generating image for '{prompt}'")
 
