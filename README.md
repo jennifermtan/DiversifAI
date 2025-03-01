@@ -2,7 +2,7 @@
 
 Run in the terminal specifying CUDA_VISIBLE_DEVICES, and using --nproc_per_node --rank --world_size flags. Example:
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 backend/cli/main.py --rank 0 --world_size 4
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 backend/cli/main.py
 ```
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
