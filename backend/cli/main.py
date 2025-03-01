@@ -16,12 +16,10 @@ IMG_HEIGHT = 768
 OUTPUT_FOLDER = "generated_images"
 PROMPT_FILE = "backend/cli/prompt.txt"
 
-# Initialize distributed setup
 def setup(rank, world_size):
-    torch.cuda.set_device(rank)  # Assign a specific GPU for each process
+    torch.cuda.set_device(rank) 
 
 
-# Cleanup after training
 def cleanup():
     dist.destroy_process_group()
 
@@ -46,10 +44,9 @@ def initialize_async_diff(pipeline):
 
 def load_prompt():
     """Load prompt from prompt.txt"""
-    # Get the absolute path of the script directory
     if not os.path.exists(PROMPT_FILE):
         print(f"Prompt file '{PROMPT_FILE}' not found.")
-        return ""  # Return an empty string if file is missing
+        return ""
     
     with open(PROMPT_FILE, "r") as f:
         prompt = " ".join(line.strip() for line in f.readlines() if line.strip())
