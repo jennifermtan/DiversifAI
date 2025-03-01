@@ -42,7 +42,6 @@ def generate_images():
             process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
             while process.poll() is None:
-                time.sleep(0.5)  # Reduce delay
                 current_files = set(os.listdir(OUTPUT_FOLDER))
                 new_files = current_files - existing_files
 
