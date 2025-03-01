@@ -9,7 +9,6 @@ from AsyncDiff.asyncdiff.async_sd import AsyncDiff
 import torch.distributed as dist
 import torch
 import time
-import argparse
 
 IMG_WIDTH = 768
 IMG_HEIGHT = 768
@@ -80,14 +79,14 @@ def main():
                 break
 
             if prompt:
-                print(f"⚡ Rank {dist.get_rank()}: Generating image for '{prompt}'")
+                print(f"Rank {dist.get_rank()}: Generating image for '{prompt}'")
 
                 for filepath in generate_and_save_images(pipeline, prompt):
                     if dist.get_rank() == 0:
-                        print(f"✅ Rank {dist.get_rank()}: Image available at: {filepath}")
+                        print(f"Rank {dist.get_rank()}: Image available at: {filepath}")
 
             else:
-                print(f"⏳ Rank {dist.get_rank()}: No prompt found. Waiting...")
+                print(f"Rank {dist.get_rank()}: No prompt found. Waiting...")
 
             time.sleep(1)
     

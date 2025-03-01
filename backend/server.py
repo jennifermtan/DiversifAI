@@ -5,7 +5,6 @@ import subprocess
 import time
 import os
 import json
-import shlex
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
@@ -62,7 +61,6 @@ def generate_images():
 
 @app.route("/stop-generation", methods=["POST"])
 def stop_generation():
-    """Write 'STOP' to prompt.txt to signal main.py to stop"""
     with open(PROMPT_FILE, "w") as f:
         f.write("STOP")
     return jsonify({"message": "Image generation stopped"}), 200
