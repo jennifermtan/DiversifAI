@@ -16,10 +16,6 @@ IMG_HEIGHT = 768
 OUTPUT_FOLDER = "generated_images"
 PROMPT_FILE = "backend/cli/prompt.txt"
 
-def setup(rank, world_size):
-    torch.cuda.set_device(rank) 
-
-
 def cleanup():
     dist.destroy_process_group()
 
@@ -32,13 +28,6 @@ def load_pipeline():
         low_cpu_mem_usage=True,
     ).to("cuda")
     return pipeline
-
-
-def initialize_async_diff(pipeline):
-    """Initialize AsyncDiff"""
-    async_diff = AsyncDiff(pipeline, model_n=2, stride=1, time_shift=False)
-    async_diff.reset_state(warm_up=1)
-    print("AsyncDiff initialized.")
 
 
 def load_prompt():
@@ -54,42 +43,45 @@ def load_prompt():
     return ""
 
 
-def generate_and_save_images(rank, pipeline, prompt):
+def generate_and_save_images(pipeline, prompt):
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     
     start_time = time.time()
 
     # Generate the image using the pipeline
     image = pipeline(prompt).images[0]
-    print(f"Rank {rank}: Image generated in {time.time() - start_time:.2f} seconds.")
+    print(f"Rank {dist.get_rank()}: Image generated in {time.time() - start_time:.2f} seconds.")
     
-    # Save the image
-    timestamp = int(time.time() * 1000) # Create unique timestamp for filename
-    filename = f"{prompt.replace(' ', '_')}_{timestamp}.png"
-    filepath = os.path.join(OUTPUT_FOLDER, filename)
-    image.save(filepath)
-    print(f"Image saved: {filepath}")
+    # Save the image only in 1 rank to prevent duplicates
+    if dist.get_rank() == 0:
+        timestamp = int(time.time() * 1000) # Create unique timestamp for filename
+        filename = f"{prompt.replace(' ', '_')}_{timestamp}.png"
+        filepath = os.path.join(OUTPUT_FOLDER, filename)
+        image.save(filepath)
+        print(f"Image saved: {filepath}")
     
-    yield filepath  # Yield the path for real-time processing or streaming
+        yield filepath  # Yield the path for real-time processing or streaming
 
 
 # Main function to run in a distributed setup
-def main(rank, world_size):
-    setup(rank, world_size)
-    
-    # Load the pipeline and initialize AsyncDiff
+def main():
+    # Initialisation
     pipeline = load_pipeline()
-    initialize_async_diff(pipeline)
+    async_diff = AsyncDiff(pipeline, model_n=2, stride=1, time_shift=False)
+    async_diff.reset_state(warm_up=1)
 
     try:
         while True:
             prompt = load_prompt()
             if prompt:
-                print(f"Rank {rank}: Generating images for prompt: {prompt}")
-                for filepath in generate_and_save_images(rank, pipeline, prompt):
-                    print(f"Rank {rank}: Image available at: {filepath}")
+                print(f"⚡ Rank {dist.get_rank()}: Generating image for '{prompt}'")
+
+                for filepath in generate_and_save_images(pipeline, prompt):
+                    if dist.get_rank() == 0:
+                        print(f"✅ Rank {dist.get_rank()}: Image available at: {filepath}")
+
             else:
-                print(f"Rank {rank}: No prompt found. Waiting...")
+                print(f"⏳ Rank {dist.get_rank()}: No prompt found. Waiting...")
 
             time.sleep(1)
     
@@ -97,18 +89,5 @@ def main(rank, world_size):
         cleanup()
 
 
-# Entry point for each distributed process
-def distributed_worker(rank, world_size):
-    main(rank, world_size)
-
-
 if __name__ == "__main__":
-    # Set up argument parsing
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--rank", type=int, required=True, help="Rank of the current process")
-    parser.add_argument("--world_size", type=int, required=True, help="Total number of processes (GPUs)")
-
-    args = parser.parse_args()
-
-    # Start the distributed worker with the user-provided prompt (if any)
-    distributed_worker(args.rank, args.world_size)
+    main()
