@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from PIL import Image
 from diffusers import StableDiffusionPipeline
 from AsyncDiff.asyncdiff.async_sd import AsyncDiff
+from wordware import diversify_prompts
 import torch.distributed as dist
 import torch
 import time
@@ -41,7 +42,6 @@ def load_prompt():
             return prompt
     return ""
 
-
 def generate_and_save_images(pipeline, prompt):
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     
@@ -71,20 +71,21 @@ def main():
 
     try:
         while True:
-            prompt = load_prompt()
+            user_prompt = load_prompt()
 
             # Break condition
-            if prompt == "STOP":
+            if user_prompt == "STOP":
                 print("Image generation stopped")
                 break
+            
+            if user_prompt:
+                diversified_prompts = diversify_prompts(user_prompt)
+                for prompt in diversified_prompts:
+                    print(f"Rank {dist.get_rank()}: Generating image for '{prompt}'")
 
-            if prompt:
-                print(f"Rank {dist.get_rank()}: Generating image for '{prompt}'")
-
-                for filepath in generate_and_save_images(pipeline, prompt):
-                    if dist.get_rank() == 0:
-                        print(f"Rank {dist.get_rank()}: Image available at: {filepath}")
-
+                    for filepath in generate_and_save_images(pipeline, prompt):
+                        if dist.get_rank() == 0:
+                            print(f"Rank {dist.get_rank()}: Image available at: {filepath}")
             else:
                 print(f"Rank {dist.get_rank()}: No prompt found. Waiting...")
 
