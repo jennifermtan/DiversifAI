@@ -42,6 +42,7 @@ def load_prompt():
             return prompt
     return ""
 
+
 def generate_and_save_images(pipeline, prompt):
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     
