@@ -8,7 +8,7 @@ API_KEY = os.environ.get("API_KEY")
 
 """Interacts with the Wordware API to generate diverse variations of user prompts."""
 def diversify_prompts(user_prompt):
-    prompt_id = "2e4d869d-5dcc-4380-8145-552c07188bb2"
+    prompt_id = "3a371ca7-4225-45a2-905d-462e5d06d1c5"
     api_key = API_KEY
 
     if not api_key:
@@ -16,7 +16,7 @@ def diversify_prompts(user_prompt):
         return
     
     url = f"https://app.wordware.ai/api/released-app/{prompt_id}/run"
-    payload = {"inputs": {"user_generations": user_prompt, "version": "^1.0"}}
+    payload = {"inputs": {"user_generation": user_prompt, "version": "^1.6"}}
     headers = {"Authorization": f"Bearer {api_key}"}
 
     try:
