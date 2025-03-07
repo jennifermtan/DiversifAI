@@ -27,7 +27,7 @@ def diversify_prompts(user_prompt):
         return
     
     url = f"https://app.wordware.ai/api/released-app/{prompt_id}/run"
-    payload = {"inputs": {"user_generation": user_prompt, "version": "^1.8"}}
+    payload = {"inputs": {"user_generation": user_prompt, "version": "^2.6"}}
     headers = {"Authorization": f"Bearer {api_key}"}
 
     try:
