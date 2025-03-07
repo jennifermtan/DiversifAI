@@ -74,7 +74,10 @@ def main():
         user_prompt = load_prompt()
         
         if user_prompt:
+            start_diversification_time = time.time()
             diversified_prompts = diversify_prompts(user_prompt)
+            diversification_time = time.time() - start_diversification_time
+
             for prompt in diversified_prompts:
                 user_prompt = load_prompt()
                 # Break condition

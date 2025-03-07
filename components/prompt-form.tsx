@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
+import { Loader2 } from "lucide-react"
 
 export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: string) => void }) {
   const [prompt, setPrompt] = useState("")
@@ -70,21 +71,26 @@ export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: str
             <label htmlFor="prompt" className="text-lg font-medium">
               Enter your prompt
             </label>
-            <div className="flex gap-2">
-              <Input
-                id="prompt"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="A serene landscape with mountains and a lake..."
-                disabled={isGenerating}
-                className="flex-1"
-              />
+            <div className="flex w-full items-center gap-2">
+              <div className="relative flex flex-1 items-center">
+                <Input
+                  id="prompt"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="A serene landscape with mountains and a lake..."
+                  disabled={isGenerating}
+                  className="pr-12 h-10 w-full"
+                />
+                {isGenerating && (
+                  <Loader2 className="absolute right-3 h-5 w-5 animate-spin text-gray-600" />
+                )}
+              </div>
               {isGenerating ? (
-                <Button type="button" onClick={handleStopGeneration} variant="destructive">
+                <Button type="button" onClick={handleStopGeneration} variant="destructive" className="w-[100px]">
                   Stop
                 </Button>
               ) : (
-                <Button type="submit" disabled={!prompt.trim()}>
+                <Button type="submit" disabled={!prompt.trim()} className="w-[100px]">
                   Generate
                 </Button>
               )}
