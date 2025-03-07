@@ -4,7 +4,18 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-API_KEY = os.environ.get("API_KEY")
+
+def get_api_key():
+    try:
+        with open("backend/api_key.txt", "r") as file:
+            return file.read().strip()
+    except FileNotFoundError:
+        print("Error: `api_key.txt` not found.")
+    except Exception as e:
+        print(f"Error reading API key: {e}")
+    return None
+
+API_KEY = get_api_key()
 
 """Interacts with the Wordware API to generate diverse variations of user prompts."""
 def diversify_prompts(user_prompt):
@@ -16,7 +27,7 @@ def diversify_prompts(user_prompt):
         return
     
     url = f"https://app.wordware.ai/api/released-app/{prompt_id}/run"
-    payload = {"inputs": {"user_generation": user_prompt, "version": "^1.6"}}
+    payload = {"inputs": {"user_generation": user_prompt, "version": "^1.8"}}
     headers = {"Authorization": f"Bearer {api_key}"}
 
     try:

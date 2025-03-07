@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from PIL import Image
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline # type: ignore
 from AsyncDiff.asyncdiff.async_sd import AsyncDiff
 from wordware import diversify_prompts
 import torch.distributed as dist
@@ -71,26 +71,25 @@ def main():
     async_diff.reset_state(warm_up=1)
 
     try:
-        while True:
-            user_prompt = load_prompt()
+        user_prompt = load_prompt()
+        
+        if user_prompt:
+            diversified_prompts = diversify_prompts(user_prompt)
+            for prompt in diversified_prompts:
+                user_prompt = load_prompt()
+                # Break condition
+                if user_prompt == "STOP":
+                    print("Image generation stopped")
+                    break
 
-            # Break condition
-            if user_prompt == "STOP":
-                print("Image generation stopped")
-                break
-            
-            if user_prompt:
-                diversified_prompts = diversify_prompts(user_prompt)
-                for prompt in diversified_prompts:
-                    print(f"Rank {dist.get_rank()}: Generating image for '{prompt}'")
+                print(f"Rank {dist.get_rank()}: Generating image for '{prompt}'")
+                for filepath in generate_and_save_images(pipeline, prompt):
+                    if dist.get_rank() == 0:
+                        print(f"Rank {dist.get_rank()}: Image available at: {filepath}")
+        else:
+            print(f"Rank {dist.get_rank()}: No prompt found. Waiting...")
 
-                    for filepath in generate_and_save_images(pipeline, prompt):
-                        if dist.get_rank() == 0:
-                            print(f"Rank {dist.get_rank()}: Image available at: {filepath}")
-            else:
-                print(f"Rank {dist.get_rank()}: No prompt found. Waiting...")
-
-            time.sleep(1)
+        time.sleep(1)
     
     finally:
         cleanup()

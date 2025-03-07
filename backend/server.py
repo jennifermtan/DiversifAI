@@ -38,8 +38,15 @@ def generate_images():
             os.makedirs(OUTPUT_FOLDER, exist_ok=True)
             existing_files = set(os.listdir(OUTPUT_FOLDER))
 
-            command = f"CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 backend/main.py"
+            command = "CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 backend/main.py"
             process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+            # Print logs for debugging
+            for line in process.stdout:
+                print("[STDOUT]", line.strip())  # Print standard output
+            for line in process.stderr:
+                print("[STDERR]", line.strip())  # Print errors
+
 
             while process.poll() is None:
                 current_files = set(os.listdir(OUTPUT_FOLDER))
