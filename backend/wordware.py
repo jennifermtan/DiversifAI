@@ -26,7 +26,7 @@ def diversify_prompts(user_prompt):
         return
     
     url = f"https://app.wordware.ai/api/released-app/{prompt_id}/run"
-    payload = {"inputs": {"user_generation": user_prompt, "version": "^2.8"}}
+    payload = {"inputs": {"user_generation": user_prompt, "version": "^3.0"}}
     headers = {"Authorization": f"Bearer {api_key}"}
 
     try:
@@ -68,7 +68,7 @@ def iterate_selected_prompts(user_prompt, selected_image_captions):
         return
     
     url = f"https://app.wordware.ai/api/released-app/{prompt_id}/run"
-    payload = {"inputs":{"user_generation": user_prompt,"selected_image_captions": selected_image_captions},"version":"^2.2"}
+    payload = {"inputs":{"user_generation": user_prompt,"selected_image_captions": selected_image_captions},"version":"^3.3"}
     headers = {"Authorization": f"Bearer {api_key}"}
 
     try:
