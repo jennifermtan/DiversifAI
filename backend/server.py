@@ -1,10 +1,10 @@
-import torch
-from flask import Flask, jsonify, request, send_from_directory, Response
-from flask_cors import CORS
+from flask import Flask, jsonify, request, send_from_directory, Response # type: ignore
+from flask_cors import CORS # type: ignore
 import subprocess
 import time
 import os
 import json
+import atexit
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
@@ -12,6 +12,8 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 OUTPUT_FOLDER = os.path.join(os.getcwd(), "generated_images")
 PROMPT_FILE = os.path.join(os.getcwd(), "backend/prompt.txt")
 SELECTED_IMAGES_FILE = os.path.join(os.getcwd(), "backend/selected_images.txt")
+
+generation_process = None
 
 @app.route("/")
 def home():
@@ -57,20 +59,21 @@ def generate_images():
             f.write(prompt)
 
         def stream():
+            global generation_process
             os.makedirs(OUTPUT_FOLDER, exist_ok=True)
             existing_files = set(os.listdir(OUTPUT_FOLDER))
 
             command = "CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 backend/main.py"
-            process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            generation_process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
             # Print logs for debugging
-            for line in process.stdout:
+            for line in generation_process.stdout:
                 print("[STDOUT]", line.strip())  # Print standard output
-            for line in process.stderr:
+            for line in generation_process.stderr:
                 print("[STDERR]", line.strip())  # Print errors
 
 
-            while process.poll() is None:
+            while generation_process.poll() is None:
                 current_files = set(os.listdir(OUTPUT_FOLDER))
                 new_files = current_files - existing_files
 
@@ -79,6 +82,7 @@ def generate_images():
                         yield f"data: {json.dumps({'image_path': f'/generated_images/{new_file}'})}\n\n"
 
                 existing_files = current_files
+                time.sleep(1)
 
             yield "event: end\ndata: {}\n\n"
 
@@ -89,9 +93,28 @@ def generate_images():
 
 @app.route("/stop-generation", methods=["POST"])
 def stop_generation():
-    with open(PROMPT_FILE, "w") as f:
-        f.write("STOP")
-    return jsonify({"message": "Image generation stopped"}), 200
+    global generation_process
+    try:
+        if generation_process and generation_process.poll() is None:
+            print("Stopping image generation process...")
+            with open(PROMPT_FILE, "w") as f:
+                f.write("STOP")
+            generation_process.terminate()  # Try to terminate gracefully
+            generation_process.wait()  # Ensure it exits
+            print("Image generation stopped.")
+
+        return jsonify({"message": "Image generation stopped"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def cleanup():
+    global generation_process
+    if generation_process and generation_process.poll() is None:
+        print("Cleaning up process before exit...")
+        generation_process.terminate()
+        generation_process.wait()
+    
+atexit.register(cleanup)
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8001, debug=True)
