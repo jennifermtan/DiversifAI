@@ -1,4 +1,16 @@
+## Introduction
+DiversifAI is a text-to-image generative system that aims to enhance ideation by providing users with diverse generations. Currently, we are using Stable Diffusion 2.1, that is accelerated using [AsyncDiff](https://github.com/czg1225/AsyncDiff).
+
 ## Getting Started
+- Prerequisites
+    - Node.js & npm (if required for the project)
+    - Python & pip (if using Python dependencies)
+
+- Download requirements
+  ```shell
+  pip install -r requirements.txt
+  ```
+## Running Locally 🚀
 First, run the backend server:
 ```bash
 python backend/server.py
@@ -15,9 +27,3 @@ pnpm dev
 # or
 bun dev
 ```
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
