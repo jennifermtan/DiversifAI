@@ -18,9 +18,14 @@ interface ImageInfo {
 
 export default function ImageGrid() {
   const [images, setImages] = useState<ImageInfo[]>([])
+  const [selectedCaptions, setSelectedCaptions] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    console.log("Updated Selected Captions:", selectedCaptions);
+  }, [selectedCaptions]); // Logs whenever selectedCaptions updates
 
   const clearImages = async () => {
     try {
@@ -73,9 +78,20 @@ export default function ImageGrid() {
       prevImages.map((img, i) => ({
         ...img,
         selected: i === index ? !img.selected : img.selected,
-      })),
-    )
-  }
+      }))
+    );
+  
+    setSelectedCaptions((prevCaptions) => {
+      const selectedImage = images[index];
+      if (!selectedImage.selected) {
+        // If the image is now selected, add its caption
+        return [...prevCaptions, selectedImage.prompt];
+      } else {
+        // If deselected, remove from the list
+        return prevCaptions.filter((caption) => caption !== selectedImage.prompt);
+      }
+    });
+  };
 
   const handleNewImage = useCallback(
     (imagePath: string) => {
