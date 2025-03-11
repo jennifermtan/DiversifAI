@@ -69,26 +69,32 @@ export default function ImageGrid() {
 
   const fetchImages = useCallback(async () => {
     try {
-      const response = await fetch("/api/images/list")
+      const response = await fetch("/api/images/list");
       if (!response.ok) {
-        throw new Error("Failed to fetch images")
+        throw new Error("Failed to fetch images");
       }
-      const newImages: ImageInfo[] = await response.json()
+      const newImages: ImageInfo[] = await response.json();
+  
       setImages((prevImages) => {
-        // Only add images that don't already exist in the list
-        const existingPaths = new Set(prevImages.map((img) => img.path))
-        const uniqueNewImages = newImages.filter((img) => !existingPaths.has(img.path))
-        if (uniqueNewImages.length > 0) {
-          return [...uniqueNewImages, ...prevImages]
-        }
-        return prevImages
-      })
+        const existingImageMap = new Map(prevImages.map((img) => [img.path, img])); // Preserve previous selection states
+        const updatedImages = newImages.map((img) => ({
+          ...img,
+          selected: existingImageMap.get(img.path)?.selected || false, // Keep selected state if it was already selected
+        }));
+        return updatedImages;
+      });
     } catch (error) {
-      console.error("Error fetching images:", error)
+      console.error("Error fetching images:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);  
+
+  const refreshImages = async () => {
+    setImages([]); // Clear UI
+    setSelectedCaptions([]); // Reset selected captions
+    await fetchImages(); // Fetch new images
+  };
 
   useEffect(() => {
     fetchImages()
@@ -150,9 +156,12 @@ export default function ImageGrid() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Generated Images</h2>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={refreshImages}>
+            Unselect All
+          </Button>
           <Button variant="outline" onClick={clearImages} disabled={generating}>
             <Trash2 className="h-4 w-4 mr-1" />
-            Clear
+            Clear Images
           </Button>
         </div>
       </div>
