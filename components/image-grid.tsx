@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, Trash2 } from "lucide-react"
+import { Loader2, Trash2, Info } from "lucide-react"
 import { useRouter } from "next/navigation"
 import PromptForm from "./prompt-form"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface ImageInfo {
   name: string
@@ -134,6 +135,17 @@ export default function ImageGrid() {
   return (
     <div className="space-y-6">
       <PromptForm onNewImage={handleNewImage} />
+      <Alert className="bg-muted/50 border-primary/20">
+      <div className="flex items-start gap-2">
+        <Info className="h-4 w-4" />
+        <div>
+          <AlertTitle>Click to select images!</AlertTitle>
+          <AlertDescription>
+            Future generations will be more alike selected images.
+          </AlertDescription>
+        </div>
+      </div>
+    </Alert>
 
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Generated Images</h2>
