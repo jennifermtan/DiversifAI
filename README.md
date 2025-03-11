@@ -3,8 +3,8 @@ DiversifAI is a text-to-image generative system that aims to enhance ideation by
 
 ## Getting Started
 - Prerequisites
-    - Node.js & npm (if required for the project)
-    - Python & pip (if using Python dependencies)
+    - Node.js & npm
+    - Python & pip
 
 - Download requirements
   ```shell
