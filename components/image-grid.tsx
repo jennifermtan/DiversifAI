@@ -141,7 +141,7 @@ export default function ImageGrid() {
         <div>
           <AlertTitle>Click to select images!</AlertTitle>
           <AlertDescription>
-            Future generations will be more alike selected images.
+            Future generations will look more like selected images.
           </AlertDescription>
         </div>
       </div>
