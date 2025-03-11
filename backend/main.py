@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from PIL import Image
 from diffusers import StableDiffusionPipeline # type: ignore
 from AsyncDiff.asyncdiff.async_sd import AsyncDiff
-from wordware import diversify_prompts
+from wordware import diversify_prompts, iterate_selected_prompts
 import torch.distributed as dist
 import torch
 import time
@@ -15,6 +15,7 @@ IMG_WIDTH = 768
 IMG_HEIGHT = 768
 OUTPUT_FOLDER = "generated_images"
 PROMPT_FILE = "backend/prompt.txt"
+SELECTED_IMAGES_FILE = "backend/selected_images.txt"
 
 def cleanup():
     dist.destroy_process_group()
@@ -42,6 +43,16 @@ def load_prompt():
             return prompt
     return ""
 
+def load_selected_images():
+    """Loads selected image captions from liked_images.txt"""
+    if not os.path.exists(SELECTED_IMAGES_FILE):
+        print(f"Selected images file '{SELECTED_IMAGES_FILE}' not found.")
+        return []
+
+    with open(SELECTED_IMAGES_FILE, "r") as f:
+        selected_captions = [line.strip() for line in f.readlines() if line.strip()]
+    
+    return selected_captions
 
 def generate_and_save_images(pipeline, prompt):
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
@@ -72,11 +83,19 @@ def main():
 
     try:
         user_prompt = load_prompt()
-        
+        selected_image_captions = load_selected_images()
+
         if user_prompt:
             start_diversification_time = time.time()
-            diversified_prompts = diversify_prompts(user_prompt)
+            if selected_image_captions:
+                print("Diversifying WITH selected images")
+                diversified_prompts = iterate_selected_prompts(user_prompt, selected_image_captions)
+            else:
+                print("Diversifying WITHOUT selected images")
+                diversified_prompts = diversify_prompts(user_prompt)
+
             diversification_time = time.time() - start_diversification_time
+            print(f"Diversification took {diversification_time:.2f} seconds")
 
             for prompt in diversified_prompts:
                 user_prompt = load_prompt()

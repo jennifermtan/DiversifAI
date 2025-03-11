@@ -58,3 +58,45 @@ def diversify_prompts(user_prompt):
                 print("Failed to decode JSON response.")
     
     return new_prompts
+
+"""Interacts with the Wordware API to generate diverse variations similar to selected images."""
+def iterate_selected_prompts(user_prompt, selected_image_captions):
+    prompt_id = "88a00a1c-d87c-4d01-8253-8b3a16ba6d3b"
+    api_key = API_KEY
+
+    if not api_key:
+        print("API key is missing. Please check your environment variables.")
+        return
+    
+    url = f"https://app.wordware.ai/api/released-app/{prompt_id}/run"
+    payload = {"inputs":{"user_generation": user_prompt,"selected_image_captions": selected_image_captions},"version":"^2.0"}
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, stream=True)
+        response.raise_for_status()  # Raises HTTPError for bad responses (4xx and 5xx)
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+        return
+
+    new_prompts = []
+    for line in response.iter_lines():
+        if line:
+            try:
+                content = json.loads(line.decode("utf-8"))
+                value = content.get("value", {})
+                if value.get("type") == "outputs":
+                    raw_output = value.get("values", {}).get("diverse_variations", "")
+                    outputs = raw_output.split("\n")
+                    for output in outputs:
+                        output = output.strip()
+                        if output:
+                            parts = output.split(".", 1)
+                            if len(parts) > 1:
+                                new_prompts.append(parts[1].strip())
+                            else:
+                                print(f"Failed parsing wordware response: '{output}'")
+            except json.JSONDecodeError:
+                print("Failed to decode JSON response.")
+    
+    return new_prompts

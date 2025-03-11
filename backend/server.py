@@ -11,10 +11,32 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 OUTPUT_FOLDER = os.path.join(os.getcwd(), "generated_images")
 PROMPT_FILE = os.path.join(os.getcwd(), "backend/prompt.txt")
+SELECTED_IMAGES_FILE = os.path.join(os.getcwd(), "backend/selected_images.txt")
 
 @app.route("/")
 def home():
     return jsonify({"message": "Server is running. Use /generate-images to generate images."})
+
+@app.route("/save-selected-captions", methods=["POST"])
+def save_selected_captions():
+    try:
+        data = request.get_json()
+        selected_captions = data.get("selectedCaptions", [])
+
+        if not isinstance(selected_captions, list):
+            return jsonify({"error": "Invalid data format"}), 400
+
+        print("Received selected captions:", selected_captions)
+
+        # Save to selected_images.txt (overwrite with new selections)
+        with open(SELECTED_IMAGES_FILE, "w") as f:
+            for caption in selected_captions:
+                f.write(caption + "\n")
+
+        return jsonify({"message": "Captions saved successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/generated_images/<filename>")
 def serve_image(filename):

@@ -23,9 +23,31 @@ export default function ImageGrid() {
   const [generating, setGenerating] = useState(false)
   const router = useRouter()
 
+  const sendSelectedCaptions = async () => {
+    try {
+      const response = await fetch("http://localhost:8001/save-selected-captions", { 
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ selectedCaptions }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to save selected captions");
+      }
+  
+      console.log("Selected captions saved successfully!");
+    } catch (error) {
+      console.error("Error saving selected captions:", error);
+    }
+  };
+
+  // Call API whenever selectedCaptions changes
   useEffect(() => {
-    console.log("Updated Selected Captions:", selectedCaptions);
-  }, [selectedCaptions]); // Logs whenever selectedCaptions updates
+    sendSelectedCaptions();
+  }, [selectedCaptions]);
+
 
   const clearImages = async () => {
     try {
