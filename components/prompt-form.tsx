@@ -2,17 +2,32 @@
 
 import type React from "react"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress";
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
 
 export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: string) => void }) {
   const [prompt, setPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [progressValue, setProgressValue] = useState(0);
   const router = useRouter()
+
+  useEffect(() => {
+    if (isGenerating) {
+      setProgressValue(0);
+      const interval = setInterval(() => {
+        setProgressValue((prev) => (prev >= 100 ? 100 : prev + 2));
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      if (progressValue != 0) {
+        setProgressValue(100);
+      } 
+    }
+  }, [isGenerating]);  
 
   const generateImages = useCallback(
     async (prompt: string) => {
@@ -57,6 +72,7 @@ export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: str
   const handleStopGeneration = async () => {
     try {
       await fetch("/api/generate", { method: "POST" })
+      setProgressValue(0);
       setIsGenerating(false)
     } catch (error) {
       console.error("Error stopping generation:", error)
@@ -67,7 +83,7 @@ export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: str
     <Card className="mb-8">
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4">
             <label htmlFor="prompt" className="text-lg font-medium">
               Enter your prompt
             </label>
@@ -81,9 +97,6 @@ export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: str
                   disabled={isGenerating}
                   className="pr-12 h-10 w-full"
                 />
-                {isGenerating && (
-                  <Loader2 className="absolute right-3 h-5 w-5 animate-spin text-gray-600" />
-                )}
               </div>
               {isGenerating ? (
                 <Button type="button" onClick={handleStopGeneration} variant="destructive" className="w-[100px]">
@@ -95,6 +108,7 @@ export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: str
                 </Button>
               )}
             </div>
+            <Progress value={progressValue}/>
           </div>
         </form>
       </CardContent>
