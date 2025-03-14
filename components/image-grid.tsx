@@ -143,10 +143,14 @@ export default function ImageGrid() {
       <PromptForm onNewImage={handleNewImage} />
       <Alert className="bg-muted/50 border-primary/20">
       <div className="flex items-start gap-2">
-        <Info className="h-4 w-4" />
+        <Info className="h-6 w-6" />
         <div>
-          <AlertTitle>Click to select images!</AlertTitle>
-          <AlertDescription>
+          <AlertTitle className="text-base">
+          {selectedCaptions.length > 0 
+            ? `${selectedCaptions.length} ${selectedCaptions.length === 1 ? "image" : "images"} selected` 
+            : "Click to select images!"}
+          </AlertTitle>
+          <AlertDescription className="text-sm">
             Future generations will look more like selected images.
           </AlertDescription>
         </div>
