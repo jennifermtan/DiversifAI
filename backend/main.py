@@ -3,13 +3,12 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from PIL import Image
 from diffusers import StableDiffusionPipeline # type: ignore
 from AsyncDiff.asyncdiff.async_sd import AsyncDiff
-from wordware import diversify_prompts, iterate_selected_prompts
 import torch.distributed as dist
 import torch
 import time
+import atexit
 
 IMG_WIDTH = 768
 IMG_HEIGHT = 768
@@ -18,8 +17,8 @@ PROMPT_FILE = "backend/prompt.txt"
 SELECTED_IMAGES_FILE = "backend/selected_images.txt"
 
 def cleanup():
-    dist.destroy_process_group()
-
+    if dist.is_initialized():
+        dist.destroy_process_group()
 
 def load_pipeline():
     pipeline = StableDiffusionPipeline.from_pretrained(
@@ -31,28 +30,15 @@ def load_pipeline():
     return pipeline
 
 
-def load_prompt():
+def load_prompts():
     """Load prompt from prompt.txt"""
     if not os.path.exists(PROMPT_FILE):
         print(f"Prompt file '{PROMPT_FILE}' not found.")
-        return ""
+        return []
     
     with open(PROMPT_FILE, "r") as f:
-        prompt = " ".join(line.strip() for line in f.readlines() if line.strip())
-        if prompt:
-            return prompt
-    return ""
-
-def load_selected_images():
-    """Loads selected image captions from liked_images.txt"""
-    if not os.path.exists(SELECTED_IMAGES_FILE):
-        print(f"Selected images file '{SELECTED_IMAGES_FILE}' not found.")
-        return []
-
-    with open(SELECTED_IMAGES_FILE, "r") as f:
-        selected_captions = [line.strip() for line in f.readlines() if line.strip()]
-    
-    return selected_captions
+        prompts = [line.strip() for line in f.readlines() if line.strip()]
+        return prompts
 
 def generate_and_save_images(pipeline, prompt):
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
@@ -70,37 +56,31 @@ def generate_and_save_images(pipeline, prompt):
         filepath = os.path.join(OUTPUT_FOLDER, filename)
         image.save(filepath)
         print(f"Image saved: {filepath}")
-    
+
+        while not os.path.exists(filepath):
+            time.sleep(0.1)  # Wait for file to be fully written
+
         yield filepath  # Yield the path for real-time processing or streaming
 
 
 # Main function to run in a distributed setup
 def main():
+    # Run cleanup when script exits
+    atexit.register(cleanup)
+
     # Initialisation
     pipeline = load_pipeline()
     async_diff = AsyncDiff(pipeline, model_n=2, stride=1, time_shift=False)
     async_diff.reset_state(warm_up=1)
 
     try:
-        user_prompt = load_prompt()
-        selected_image_captions = load_selected_images()
+        prompts = load_prompts()
 
-        if user_prompt:
-            start_diversification_time = time.time()
-            if selected_image_captions:
-                print("Diversifying WITH selected images")
-                diversified_prompts = iterate_selected_prompts(user_prompt, selected_image_captions)
-            else:
-                print("Diversifying WITHOUT selected images")
-                diversified_prompts = diversify_prompts(user_prompt)
-
-            diversification_time = time.time() - start_diversification_time
-            print(f"Diversification took {diversification_time:.2f} seconds")
-
-            for prompt in diversified_prompts:
-                user_prompt = load_prompt()
+        if prompts != []:
+            for prompt in prompts:
+                prompts = load_prompts()
                 # Break condition
-                if user_prompt == "STOP":
+                if prompts == []:
                     print("Image generation stopped")
                     break
 
@@ -110,12 +90,9 @@ def main():
                         print(f"Rank {dist.get_rank()}: Image available at: {filepath}")
         else:
             print(f"Rank {dist.get_rank()}: No prompt found. Waiting...")
-
-        time.sleep(1)
     
     finally:
         cleanup()
-
 
 if __name__ == "__main__":
     main()

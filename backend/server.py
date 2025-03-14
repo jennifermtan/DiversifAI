@@ -5,6 +5,7 @@ import time
 import os
 import json
 import atexit
+from wordware import diversify_prompts, iterate_selected_prompts
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
@@ -12,8 +13,10 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 OUTPUT_FOLDER = os.path.join(os.getcwd(), "generated_images")
 PROMPT_FILE = os.path.join(os.getcwd(), "backend/prompt.txt")
 SELECTED_IMAGES_FILE = os.path.join(os.getcwd(), "backend/selected_images.txt")
+NUM_IMAGES = 3
 
 generation_process = None
+isDiversifyOn = True
 
 @app.route("/")
 def home():
@@ -49,14 +52,38 @@ def serve_image(filename):
 @app.route("/generate-images", methods=["GET"])
 def generate_images():
     try:
-        prompt = request.args.get("prompt", "").strip()
+        user_prompt = request.args.get("prompt", "").strip()
 
-        if not prompt:
+        if not user_prompt:
             return jsonify({"error": "Prompt is required"}), 400
         
-        # Write only the latest prompt to the text file
-        with open(PROMPT_FILE, "w") as f:  # Overwrite the file with the latest prompt
-            f.write(prompt)
+        # # Write only the latest prompt to the text file
+        # with open(PROMPT_FILE, "w") as f:  # Overwrite the file with the latest prompt
+        #     f.write(user_prompt)
+
+        selected_image_captions = load_selected_images()
+
+        # Diversify prompts
+        if isDiversifyOn:
+            start_diversification_time = time.time()
+            if selected_image_captions:
+                print("Diversifying WITH selected images")
+                diversified_prompts = iterate_selected_prompts(user_prompt, selected_image_captions)
+            else:
+                print("Diversifying WITHOUT selected images")
+                diversified_prompts = diversify_prompts(user_prompt)
+
+            diversification_time = time.time() - start_diversification_time
+            print(f"Diversification took {diversification_time:.2f} seconds")
+
+            print(diversified_prompts)
+
+            with open(PROMPT_FILE, "w") as f:  # Overwrite the file with the latest prompt
+                f.write("\n".join(diversified_prompts) + "\n")
+        else:
+            with open(PROMPT_FILE, "w") as f:
+                for _ in range(NUM_IMAGES):
+                    f.write(user_prompt + "\n")
 
         def stream():
             global generation_process
@@ -98,7 +125,7 @@ def stop_generation():
         if generation_process and generation_process.poll() is None:
             print("Stopping image generation process...")
             with open(PROMPT_FILE, "w") as f:
-                f.write("STOP")
+                f.write("")
             generation_process.terminate()  # Try to terminate gracefully
             generation_process.wait()  # Ensure it exits
             print("Image generation stopped.")
@@ -107,12 +134,24 @@ def stop_generation():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+### HELPER FUNCTIONS ###
 def cleanup():
     global generation_process
     if generation_process and generation_process.poll() is None:
         print("Cleaning up process before exit...")
         generation_process.terminate()
         generation_process.wait()
+
+def load_selected_images():
+    """Loads selected image captions from liked_images.txt"""
+    if not os.path.exists(SELECTED_IMAGES_FILE):
+        print(f"Selected images file '{SELECTED_IMAGES_FILE}' not found.")
+        return []
+
+    with open(SELECTED_IMAGES_FILE, "r") as f:
+        selected_captions = [line.strip() for line in f.readlines() if line.strip()]
+    
+    return selected_captions
     
 atexit.register(cleanup)
 
