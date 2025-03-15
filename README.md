@@ -31,7 +31,7 @@ npm install
 First, run the backend server:
 
 ```bash
-flask --app backend/server run
+python backend/server.py
 ```
 
 Then, run the development server:
