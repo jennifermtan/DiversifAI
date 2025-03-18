@@ -94,11 +94,13 @@ export default function ImageGrid() {
 
     setSelectedCaptions((prevCaptions) => {
       const selectedImage = images[index];
-      if (!selectedImage) return prevCaptions; // Prevent undefined errors
-
-      return selectedImage.selected
-        ? prevCaptions.filter((caption) => caption !== selectedImage.prompt)
-        : [...prevCaptions, selectedImage.prompt];
+      if (!selectedImage.selected) {
+        // If the image is now selected, add its caption
+        return [...prevCaptions, selectedImage.prompt];
+      } else {
+        // If deselected, remove from the list
+        return prevCaptions.filter((caption) => caption !== selectedImage.prompt);
+      }
     });
   };
 
