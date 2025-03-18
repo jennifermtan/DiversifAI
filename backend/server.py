@@ -66,9 +66,9 @@ def generate_images():
         if not user_prompt:
             return jsonify({"error": "Prompt is required"}), 400
         
-        # Write prompt to history
         os.makedirs(HISTORY_FOLDER, exist_ok=True)
-
+        
+        # Write to history file
         with open(HISTORY_FILE, "a") as file:
             timestamp = datetime.now().strftime("%H:%M:%S")
             file.write(f"{timestamp} - User prompt: {user_prompt}\n")
