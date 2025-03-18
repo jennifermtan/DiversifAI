@@ -1,106 +1,88 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import Image from "next/image"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Loader2, Trash2, Info } from "lucide-react"
-import { useRouter } from "next/navigation"
-import PromptForm from "./prompt-form"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2, Trash2, Info } from "lucide-react";
+import PromptForm from "./prompt-form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ImageInfo {
-  name: string
-  prompt: string
-  path: string
-  createdAt: number
-  selected?: boolean
+  name: string;
+  prompt: string;
+  path: string;
+  createdAt: number;
+  selected?: boolean;
 }
 
 export default function ImageGrid() {
-  const [images, setImages] = useState<ImageInfo[]>([])
-  const [selectedCaptions, setSelectedCaptions] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [generating, setGenerating] = useState(false)
-  const router = useRouter()
+  const [images, setImages] = useState<ImageInfo[]>([]);
+  const [selectedCaptions, setSelectedCaptions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   const sendSelectedCaptions = async () => {
     try {
       const response = await fetch("http://localhost:8001/save-selected-captions", { 
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ selectedCaptions }),
       });
-  
-      if (!response.ok) {
-        throw new Error("Failed to save selected captions");
-      }
-  
+
+      if (!response.ok) throw new Error("Failed to save selected captions");
       console.log("Selected captions saved successfully!");
     } catch (error) {
       console.error("Error saving selected captions:", error);
     }
   };
 
-  // Call API whenever selectedCaptions changes
   useEffect(() => {
     sendSelectedCaptions();
   }, [selectedCaptions]);
 
-
   const clearImages = async () => {
     try {
-      const response = await fetch("/api/images/clear", {
-        method: "DELETE",
-      });
-  
-      if (!response.ok) {
-        const errorMessage = await response.text();
-        throw new Error(`Failed to delete images: ${errorMessage}`);
-      }
-  
+      const response = await fetch("/api/images/clear", { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete images");
+
       setImages([]); // Clear images from UI
     } catch (error) {
       console.error("Error clearing images:", error);
     }
-  };  
+  };
 
   const fetchImages = useCallback(async () => {
     try {
       const response = await fetch("/api/images/list");
-      if (!response.ok) {
-        throw new Error("Failed to fetch images");
-      }
+      if (!response.ok) throw new Error("Failed to fetch images");
+      
       const newImages: ImageInfo[] = await response.json();
-  
       setImages((prevImages) => {
-        const existingImageMap = new Map(prevImages.map((img) => [img.path, img])); // Preserve previous selection states
-        const updatedImages = newImages.map((img) => ({
+        const existingImageMap = new Map(prevImages.map((img) => [img.path, img]));
+        return newImages.map((img) => ({
           ...img,
-          selected: existingImageMap.get(img.path)?.selected || false, // Keep selected state if it was already selected
+          selected: existingImageMap.get(img.path)?.selected || false,
         }));
-        return updatedImages;
       });
     } catch (error) {
       console.error("Error fetching images:", error);
     } finally {
       setLoading(false);
     }
-  }, []);  
+  }, []);
 
   const refreshImages = async () => {
-    setImages([]); // Clear UI
-    setSelectedCaptions([]); // Reset selected captions
-    await fetchImages(); // Fetch new images
+    setImages([]); 
+    setSelectedCaptions([]);
+    await fetchImages();
   };
 
   useEffect(() => {
-    fetchImages()
-    const intervalId = setInterval(fetchImages, 2000) // Poll every 2 seconds
-    return () => clearInterval(intervalId)
-  }, [fetchImages])
+    fetchImages();
+    const intervalId = setInterval(fetchImages, 2000); 
+    return () => clearInterval(intervalId);
+  }, [fetchImages]);
 
   const toggleImageSelection = (index: number) => {
     setImages((prevImages) =>
@@ -109,25 +91,20 @@ export default function ImageGrid() {
         selected: i === index ? !img.selected : img.selected,
       }))
     );
-  
+
     setSelectedCaptions((prevCaptions) => {
       const selectedImage = images[index];
-      if (!selectedImage.selected) {
-        // If the image is now selected, add its caption
-        return [...prevCaptions, selectedImage.prompt];
-      } else {
-        // If deselected, remove from the list
-        return prevCaptions.filter((caption) => caption !== selectedImage.prompt);
-      }
+      if (!selectedImage) return prevCaptions; // Prevent undefined errors
+
+      return selectedImage.selected
+        ? prevCaptions.filter((caption) => caption !== selectedImage.prompt)
+        : [...prevCaptions, selectedImage.prompt];
     });
   };
 
-  const handleNewImage = useCallback(
-    (imagePath: string) => {
-      fetchImages() // Refresh the image list when a new image is generated
-    },
-    [fetchImages],
-  )
+  const handleNewImage = useCallback(() => {
+    fetchImages(); // Only fetch images once instead of refetching every render
+  }, [fetchImages]);
 
   if (loading && images.length === 0) {
     return (
@@ -135,27 +112,28 @@ export default function ImageGrid() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2">Loading images...</span>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-6">
-      <PromptForm onNewImage={handleNewImage} />
+      <PromptForm onNewImage={handleNewImage} onGeneratingChange={setGenerating} />
+
       <Alert className="bg-muted/50 border-primary/20">
-      <div className="flex items-start gap-2">
-        <Info className="h-6 w-6" />
-        <div>
-          <AlertTitle className="text-base">
-          {selectedCaptions.length > 0 
-            ? `${selectedCaptions.length} ${selectedCaptions.length === 1 ? "image" : "images"} selected` 
-            : "Click to select images!"}
-          </AlertTitle>
-          <AlertDescription className="text-sm">
-            Future generations will look more like selected images.
-          </AlertDescription>
+        <div className="flex items-start gap-2">
+          <Info className="h-6 w-6" />
+          <div>
+            <AlertTitle className="text-base">
+              {selectedCaptions.length > 0 
+                ? `${selectedCaptions.length} ${selectedCaptions.length === 1 ? "image" : "images"} selected`
+                : "Click to select images!"}
+            </AlertTitle>
+            <AlertDescription className="text-sm">
+              Future generations will look more like selected images.
+            </AlertDescription>
+          </div>
         </div>
-      </div>
-    </Alert>
+      </Alert>
 
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Generated Images</h2>
@@ -174,10 +152,12 @@ export default function ImageGrid() {
         {images.map((image, index) => (
           <Card
             key={`${image.path}-${image.createdAt}`}
-            className={`overflow-hidden cursor-pointer transition-all ${
-              image.selected ? "ring-2 ring-primary scale-[0.98]" : ""
-            }`}
-            onClick={() => toggleImageSelection(index)}
+            className={`overflow-hidden transition-all ${
+              generating ? "cursor-not-allowed pointer-events-none" : "cursor-pointer"
+            } ${image.selected ? "ring-2 ring-primary scale-[0.98]" : ""}`}
+            onClick={() => {
+              if (!generating) toggleImageSelection(index);
+            }}
           >
             <CardContent className="p-0 relative aspect-square">
               <Image
@@ -186,7 +166,7 @@ export default function ImageGrid() {
                 fill
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                 className="object-cover"
-                priority={index < 6} // Prioritize loading for first 6 images
+                priority={index < 6} 
               />
               {image.selected && (
                 <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
@@ -203,5 +183,5 @@ export default function ImageGrid() {
         ))}
       </div>
     </div>
-  )
+  );
 }

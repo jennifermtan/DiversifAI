@@ -1,20 +1,28 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState, useCallback, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
+import type React from "react";
+import { useState, useCallback, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useRouter } from "next/navigation"
 
-export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: string) => void }) {
-  const [prompt, setPrompt] = useState("")
-  const [isGenerating, setIsGenerating] = useState(false)
+export default function PromptForm({
+  onNewImage,
+  onGeneratingChange, // Notify about generation state
+}: {
+  onNewImage: (imagePath: string) => void;
+  onGeneratingChange: (isGenerating: boolean) => void;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
-  const router = useRouter()
 
+  useEffect(() => {
+    onGeneratingChange(isGenerating);
+  }, [isGenerating, onGeneratingChange]);
+
+  // Handle progress bar updates
   useEffect(() => {
     if (isGenerating) {
       setProgressValue(0);
@@ -25,59 +33,62 @@ export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: str
     } else {
       if (progressValue != 0) {
         setProgressValue(100);
-      } 
+      }
     }
-  }, [isGenerating]);  
+  }, [isGenerating]);
 
+  // Function to start image generation
   const generateImages = useCallback(
     async (prompt: string) => {
-      setIsGenerating(true)
+      setIsGenerating(true);
       try {
-        const response = await fetch(`/api/generate?prompt=${encodeURIComponent(prompt)}`)
-        const reader = response.body?.getReader()
-        if (!reader) throw new Error("Failed to start image generation")
+        const response = await fetch(`/api/generate?prompt=${encodeURIComponent(prompt)}`);
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("Failed to start image generation");
 
         while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
+          const { done, value } = await reader.read();
+          if (done) break;
 
-          const chunk = new TextDecoder().decode(value)
-          const lines = chunk.split("\n")
+          const chunk = new TextDecoder().decode(value);
+          const lines = chunk.split("\n");
 
           for (const line of lines) {
             if (line.startsWith("data:")) {
-              const data = JSON.parse(line.slice(5))
+              const data = JSON.parse(line.slice(5));
               if (data.image_path) {
-                onNewImage(data.image_path)
+                onNewImage(data.image_path);
               }
             }
           }
         }
       } catch (error) {
-        console.error("Error generating images:", error)
+        console.error("Error generating images:", error);
       } finally {
-        setIsGenerating(false)
-        router.refresh()
+        setIsGenerating(false);
       }
     },
-    [onNewImage, router],
-  )
+    [onNewImage]
+  );
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!prompt.trim()) return
-    generateImages(prompt)
-  }
+    e.preventDefault();
+    if (!prompt.trim()) return;
+    generateImages(prompt);
+  };
 
+  // Function to stop image generation
   const handleStopGeneration = async () => {
     try {
-      await fetch("/api/generate", { method: "POST" })
-      setProgressValue(0);
-      setIsGenerating(false)
+      await fetch("/api/generate", { method: "POST" });
     } catch (error) {
-      console.error("Error stopping generation:", error)
+      console.error("Error stopping generation:", error);
+    } finally {
+      setProgressValue(0);
+      setIsGenerating(false);
     }
-  }
+  };
 
   return (
     <Card className="mb-8">
@@ -108,10 +119,10 @@ export default function PromptForm({ onNewImage }: { onNewImage: (imagePath: str
                 </Button>
               )}
             </div>
-            <Progress value={progressValue}/>
+            <Progress value={progressValue} />
           </div>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }
