@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory, Response # type: ignore
 from flask_cors import CORS # type: ignore
 import subprocess
@@ -15,6 +16,9 @@ PROMPT_FILE = os.path.join(os.getcwd(), "backend/prompt.txt")
 SELECTED_IMAGES_FILE = os.path.join(os.getcwd(), "backend/selected_images.txt")
 NUM_IMAGES = 3
 
+HISTORY_FOLDER = os.path.join(os.getcwd(), "history")
+HISTORY_FILE = os.path.join(HISTORY_FOLDER, datetime.now().strftime("output_%Y-%m-%d_%H-%M-%S.txt"))
+
 generation_process = None
 isDiversifyOn = True
 
@@ -27,6 +31,11 @@ def save_selected_captions():
     try:
         data = request.get_json()
         selected_captions = data.get("selectedCaptions", [])
+        
+        # Write to history file
+        with open(HISTORY_FILE, "a") as file:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            file.write(f"{timestamp} - Selected images: {selected_captions}\n")
 
         if not isinstance(selected_captions, list):
             return jsonify({"error": "Invalid data format"}), 400
@@ -57,9 +66,12 @@ def generate_images():
         if not user_prompt:
             return jsonify({"error": "Prompt is required"}), 400
         
-        # # Write only the latest prompt to the text file
-        # with open(PROMPT_FILE, "w") as f:  # Overwrite the file with the latest prompt
-        #     f.write(user_prompt)
+        # Write prompt to history
+        os.makedirs(HISTORY_FOLDER, exist_ok=True)
+
+        with open(HISTORY_FILE, "a") as file:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            file.write(f"{timestamp} - User prompt: {user_prompt}\n")
 
         selected_image_captions = load_selected_images()
 
@@ -73,6 +85,11 @@ def generate_images():
                 print("Diversifying WITHOUT selected images")
                 diversified_prompts = diversify_prompts(user_prompt)
 
+            # Write to history file
+            with open(HISTORY_FILE, "a") as file:
+                timestamp = datetime.now().strftime("%H:%M:%S")
+                file.write(f"{timestamp} - Diversified prompts: {diversified_prompts}\n")
+            
             diversification_time = time.time() - start_diversification_time
             print(f"Diversification took {diversification_time:.2f} seconds")
 
