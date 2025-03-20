@@ -20,7 +20,7 @@ HISTORY_FOLDER = os.path.join(os.getcwd(), "history")
 HISTORY_FILE = os.path.join(HISTORY_FOLDER, datetime.now().strftime("output_%Y-%m-%d_%H-%M-%S.txt"))
 
 generation_process = None
-isDiversifyOn = True
+isDiversifyOn = False
 
 @app.route("/")
 def home():
@@ -34,7 +34,7 @@ def save_selected_captions():
         
         # Write to history file
         with open(HISTORY_FILE, "a") as file:
-            timestamp = datetime.now().strftime("%H:%M:%S")
+            timestamp =  datetime.now().isoformat()
             file.write(f"{timestamp} - Selected images: {selected_captions}\n")
 
         if not isinstance(selected_captions, list):
@@ -70,7 +70,7 @@ def generate_images():
         
         # Write to history file
         with open(HISTORY_FILE, "a") as file:
-            timestamp = datetime.now().strftime("%H:%M:%S")
+            timestamp = datetime.now().isoformat()
             file.write(f"{timestamp} - User prompt: {user_prompt}\n")
 
         selected_image_captions = load_selected_images()
@@ -87,7 +87,7 @@ def generate_images():
 
             # Write to history file
             with open(HISTORY_FILE, "a") as file:
-                timestamp = datetime.now().strftime("%H:%M:%S")
+                timestamp = datetime.now().isoformat()
                 file.write(f"{timestamp} - Diversified prompts: {diversified_prompts}\n")
             
             diversification_time = time.time() - start_diversification_time
