@@ -16,30 +16,35 @@ interface ImageInfo {
   selected?: boolean;
 }
 
+interface SelectedImage {
+  filename: string;
+  caption: string;
+}
+
 export default function ImageGrid() {
   const [images, setImages] = useState<ImageInfo[]>([]);
-  const [selectedCaptions, setSelectedCaptions] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
-  const sendSelectedCaptions = async () => {
+  const sendSelectedImages = async () => {
     try {
       const response = await fetch("http://localhost:8001/save-selected-captions", { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedCaptions }),
+        body: JSON.stringify({ selectedCaptions: selectedImages }),
       });
 
-      if (!response.ok) throw new Error("Failed to save selected captions");
-      console.log("Selected captions saved successfully!");
+      if (!response.ok) throw new Error("Failed to save selected images");
+      console.log("Selected images saved successfully!");
     } catch (error) {
-      console.error("Error saving selected captions:", error);
+      console.error("Error saving selected images:", error);
     }
   };
 
   useEffect(() => {
-    sendSelectedCaptions();
-  }, [selectedCaptions]);
+    sendSelectedImages();
+  }, [selectedImages]);
 
   const clearImages = async () => {
     try {
@@ -47,6 +52,7 @@ export default function ImageGrid() {
       if (!response.ok) throw new Error("Failed to delete images");
 
       setImages([]); // Clear images from UI
+      setSelectedImages([]); // Clear selection
     } catch (error) {
       console.error("Error clearing images:", error);
     }
@@ -74,7 +80,7 @@ export default function ImageGrid() {
 
   const refreshImages = async () => {
     setImages([]); 
-    setSelectedCaptions([]);
+    setSelectedImages([]);
     await fetchImages();
   };
 
@@ -92,20 +98,22 @@ export default function ImageGrid() {
       }))
     );
 
-    setSelectedCaptions((prevCaptions) => {
+    setSelectedImages((prevSelected) => {
       const selectedImage = images[index];
-      if (!selectedImage.selected) {
-        // If the image is now selected, add its caption
-        return [...prevCaptions, selectedImage.prompt];
+      const filename = selectedImage.name;
+      const caption = selectedImage.prompt;
+      const isAlreadySelected = selectedImage.selected;
+
+      if (!isAlreadySelected) {
+        return [...prevSelected, { filename, caption }];
       } else {
-        // If deselected, remove from the list
-        return prevCaptions.filter((caption) => caption !== selectedImage.prompt);
+        return prevSelected.filter((img) => img.filename !== filename);
       }
     });
   };
 
   const handleNewImage = useCallback(() => {
-    fetchImages(); // Only fetch images once instead of refetching every render
+    fetchImages();
   }, [fetchImages]);
 
   if (loading && images.length === 0) {
@@ -126,8 +134,8 @@ export default function ImageGrid() {
           <Info className="h-6 w-6" />
           <div>
             <AlertTitle className="text-base">
-              {selectedCaptions.length > 0 
-                ? `${selectedCaptions.length} ${selectedCaptions.length === 1 ? "image" : "images"} selected`
+              {selectedImages.length > 0 
+                ? `${selectedImages.length} ${selectedImages.length === 1 ? "image" : "images"} selected`
                 : "Click to select images!"}
             </AlertTitle>
             <AlertDescription className="text-sm">

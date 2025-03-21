@@ -20,7 +20,7 @@ HISTORY_FOLDER = os.path.join(os.getcwd(), "history")
 HISTORY_FILE = os.path.join(HISTORY_FOLDER, datetime.now().strftime("output_%Y-%m-%d_%H-%M-%S.txt"))
 
 generation_process = None
-isDiversifyOn = False
+isDiversifyOn = True
 
 @app.route("/")
 def home():
@@ -30,21 +30,24 @@ def home():
 def save_selected_captions():
     try:
         data = request.get_json()
-        selected_captions = data.get("selectedCaptions", [])
+        selected_images = data.get("selectedCaptions", [])
         
-        # Write to history file
+        # Write to history file (log filenames)
         with open(HISTORY_FILE, "a") as file:
-            timestamp =  datetime.now().isoformat()
-            file.write(f"{timestamp} - Selected images: {selected_captions}\n")
+            timestamp = datetime.now().isoformat()
+            filenames = [img.get("filename", "") for img in selected_images]
+            file.write(f"{timestamp} - Selected images: {filenames}\n")
 
-        if not isinstance(selected_captions, list):
-            return jsonify({"error": "Invalid data format"}), 400
+        captions = [img.get("caption", "") for img in selected_images]
 
-        print("Received selected captions:", selected_captions)
+        if not all(isinstance(c, str) for c in captions):
+            return jsonify({"error": "Invalid caption format"}), 400
 
-        # Save to selected_images.txt (overwrite with new selections)
+        print("Received selected captions:", captions)
+
+        # Save captions to selected_images.txt
         with open(SELECTED_IMAGES_FILE, "w") as f:
-            for caption in selected_captions:
+            for caption in captions:
                 f.write(caption + "\n")
 
         return jsonify({"message": "Captions saved successfully"}), 200
@@ -73,14 +76,14 @@ def generate_images():
             timestamp = datetime.now().isoformat()
             file.write(f"{timestamp} - User prompt: {user_prompt}\n")
 
-        selected_image_captions = load_selected_images()
+        selected_image_filenames = load_selected_images()
 
         # Diversify prompts
         if isDiversifyOn:
             start_diversification_time = time.time()
-            if selected_image_captions:
+            if selected_image_filenames:
                 print("Diversifying WITH selected images")
-                diversified_prompts = iterate_selected_prompts(user_prompt, selected_image_captions)
+                diversified_prompts = iterate_selected_prompts(user_prompt, selected_image_filenames)
             else:
                 print("Diversifying WITHOUT selected images")
                 diversified_prompts = diversify_prompts(user_prompt)
@@ -92,8 +95,6 @@ def generate_images():
             
             diversification_time = time.time() - start_diversification_time
             print(f"Diversification took {diversification_time:.2f} seconds")
-
-            print(diversified_prompts)
 
             with open(PROMPT_FILE, "w") as f:  # Overwrite the file with the latest prompt
                 f.write("\n".join(diversified_prompts) + "\n")
@@ -115,7 +116,6 @@ def generate_images():
                 print("[STDOUT]", line.strip())  # Print standard output
             for line in generation_process.stderr:
                 print("[STDERR]", line.strip())  # Print errors
-
 
             while generation_process.poll() is None:
                 current_files = set(os.listdir(OUTPUT_FOLDER))
@@ -160,15 +160,15 @@ def cleanup():
         generation_process.wait()
 
 def load_selected_images():
-    """Loads selected image captions from liked_images.txt"""
+    """Loads selected image filenames from selected_images.txt"""
     if not os.path.exists(SELECTED_IMAGES_FILE):
         print(f"Selected images file '{SELECTED_IMAGES_FILE}' not found.")
         return []
 
     with open(SELECTED_IMAGES_FILE, "r") as f:
-        selected_captions = [line.strip() for line in f.readlines() if line.strip()]
+        selected_images = [line.strip() for line in f.readlines() if line.strip()]
     
-    return selected_captions
+    return selected_images
     
 atexit.register(cleanup)
 
