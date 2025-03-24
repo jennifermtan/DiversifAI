@@ -29,11 +29,14 @@ export default function ImageGrid() {
 
   const sendSelectedImages = async () => {
     try {
-      const response = await fetch("http://localhost:8001/save-selected-captions", { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedCaptions: selectedImages }),
-      });
+      const response = await fetch(
+        "http://localhost:8001/save-selected-captions",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ selectedCaptions: selectedImages }),
+        }
+      );
 
       if (!response.ok) throw new Error("Failed to save selected images");
       console.log("Selected images saved successfully!");
@@ -62,10 +65,12 @@ export default function ImageGrid() {
     try {
       const response = await fetch("/api/images/list");
       if (!response.ok) throw new Error("Failed to fetch images");
-      
+
       const newImages: ImageInfo[] = await response.json();
       setImages((prevImages) => {
-        const existingImageMap = new Map(prevImages.map((img) => [img.path, img]));
+        const existingImageMap = new Map(
+          prevImages.map((img) => [img.path, img])
+        );
         return newImages.map((img) => ({
           ...img,
           selected: existingImageMap.get(img.path)?.selected || false,
@@ -79,14 +84,14 @@ export default function ImageGrid() {
   }, []);
 
   const refreshImages = async () => {
-    setImages([]); 
+    setImages([]);
     setSelectedImages([]);
     await fetchImages();
   };
 
   useEffect(() => {
     fetchImages();
-    const intervalId = setInterval(fetchImages, 2000); 
+    const intervalId = setInterval(fetchImages, 2000);
     return () => clearInterval(intervalId);
   }, [fetchImages]);
 
@@ -127,15 +132,20 @@ export default function ImageGrid() {
 
   return (
     <div className="space-y-6">
-      <PromptForm onNewImage={handleNewImage} onGeneratingChange={setGenerating} />
+      <PromptForm
+        onNewImage={handleNewImage}
+        onGeneratingChange={setGenerating}
+      />
 
       <Alert className="bg-muted/50 border-primary/20">
         <div className="flex items-start gap-2">
           <Info className="h-6 w-6" />
           <div>
             <AlertTitle className="text-base">
-              {selectedImages.length > 0 
-                ? `${selectedImages.length} ${selectedImages.length === 1 ? "image" : "images"} selected`
+              {selectedImages.length > 0
+                ? `${selectedImages.length} ${
+                    selectedImages.length === 1 ? "image" : "images"
+                  } selected`
                 : "Click to select images!"}
             </AlertTitle>
             <AlertDescription className="text-sm">
@@ -163,7 +173,9 @@ export default function ImageGrid() {
           <Card
             key={`${image.path}-${image.createdAt}`}
             className={`overflow-hidden transition-all ${
-              generating ? "cursor-not-allowed pointer-events-none" : "cursor-pointer"
+              generating
+                ? "cursor-not-allowed pointer-events-none"
+                : "cursor-pointer"
             } ${image.selected ? "ring-2 ring-primary scale-[0.98]" : ""}`}
             onClick={() => {
               if (!generating) toggleImageSelection(index);
@@ -173,10 +185,11 @@ export default function ImageGrid() {
               <Image
                 src={`/api/images?path=${encodeURIComponent(image.path)}`}
                 alt={`Generated image: ${image.prompt}`}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                className="object-cover"
-                priority={index < 6} 
+                // intrinsic dimension to determine the aspect ratio
+                width={768}
+                height={768}
+                className="object-cover w-full h-auto"
+                priority={index < 6}
               />
               {image.selected && (
                 <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
