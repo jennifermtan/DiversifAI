@@ -188,8 +188,9 @@ export default function ImageGrid() {
                 // intrinsic dimension to determine the aspect ratio
                 width={768}
                 height={768}
-                className="object-cover w-full h-auto"
+                className="object-cover w-full h-full"
                 priority={index < 6}
+                unoptimized
               />
               {image.selected && (
                 <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
