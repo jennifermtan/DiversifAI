@@ -9,7 +9,7 @@ import atexit
 from wordware import diversify_prompts, iterate_selected_prompts
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(app)
 
 OUTPUT_FOLDER = os.path.join(os.getcwd(), "generated_images")
 PROMPT_FILE = os.path.join(os.getcwd(), "backend/prompt.txt")
